@@ -15,10 +15,10 @@
 parameter nodeCreator is false. // delegate to re-create node if needed
 parameter burnTime is 0. // estimated burn time, lib_staging:burnTimeForDt used if zero
 
-run once lib_ui.
-run once lib_util.
-run once lib_warp.
-run once lib_staging.
+runoncepath("lib_ui").
+runoncepath("lib_util").
+runoncepath("lib_warp").
+runoncepath("lib_staging").
 
 stagingPrepare().
 

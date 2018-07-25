@@ -4,8 +4,8 @@
 // Circularizes at the nearest apoapsis or periapsis
 /////////////////////////////////////////////////////////////////////////////
 
-run once lib_ui.
-run once lib_util.
+runoncepath("lib_ui").
+runoncepath("lib_util").
 
 if Career():canMakeNodes and periapsis > max(body:atm:height,1000)
 {
@@ -17,8 +17,8 @@ if Career():canMakeNodes and periapsis > max(body:atm:height,1000)
 }
 else if apoapsis > 0 and eta:apoapsis < eta:periapsis
 {
-	run once lib_staging.
-	run once lib_warp.
+	runoncepath("lib_staging").
+	runoncepath("lib_warp").
 
 	local sstate is sas.
 	sas off.
