@@ -1,6 +1,11 @@
 @lazyglobal off.
-//Parameters
-Parameter TGTApoapsis is 150000.
+
+// Final apoapsis (m altitude)
+Parameter TGTApoapsis is 0.
+// Work-arount to set default value (because of parameter in launch.ks)
+if TGTApoapsis = 0 set TGTApoapsis to 150000.
+
+// Heading during launch (90 for equatorial prograde orbit)
 Parameter TGTHeading is 90.
 
 //Libraries
@@ -16,7 +21,7 @@ Local TGTClimbAcc is 5.             // Acceleration in m/s² the ship try to kee
 Local ClimbTick is 0.25.            // Time between each loop run
 Local ClimbDefaultPitch is 20.      // Default climb pitch
 Local GTAltitude is 45000.          // End of "Gravit turn" (When ship will fly with pitch 0 until apoapsis)
-Local AirBreathingAlt is 23000.     // From this altitude and up, dual-mode engines will change to closed cycle. 
+Local AirBreathingAlt is 23000.     // From this altitude and up, dual-mode engines will change to closed cycle.
 Local ThrottleValue is 0.
 
 // Functions.
@@ -30,7 +35,7 @@ function ascentThrottle {
     local ApoPercent is ship:obt:apoapsis/TGTApoapsis.
     local ApoCompensation is 0.
     if ApoPercent > 0.9 set ApoCompensation to (ApoPercent - 0.9) * 10.
-    return 1 - min(0.95,max(0,ApoCompensation)).  
+    return 1 - min(0.95,max(0,ApoCompensation)).
 }
 
 when Ship:Altitude > AirBreathingAlt then {
@@ -76,7 +81,7 @@ UNTIL SHIP:Apoapsis > TGTApoapsis {
     set PitchByAcc to ClimbDefaultPitch + CLimbPitchPID:UPDATE(Time:Seconds,TGTClimbAcc-ClimbAcc()).
 
     set PitchAngle to min(PitchByGT,PitchByAcc).
-} 
+}
 Set ThrottleValue to 0.
 
 until ship:altitude > body:atm:height {

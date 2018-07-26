@@ -6,7 +6,14 @@
 /////////////////////////////////////////////////////////////////////////////
 
 // Final apoapsis (m altitude)
-parameter apo is 200000.
+local function defaultApo {
+	if body:atm:exists return body:atm:height + (body:radius / 10).
+	return min(15000, body:radius / 10).
+}
+parameter apo is 0.
+// Work-arount to set default value (because of parameter in launch.ks)
+if apo = 0 set apo to defaultApo().
+
 // Heading during launch (90 for equatorial prograde orbit)
 parameter hdglaunch is 90.
 
@@ -28,8 +35,8 @@ uiBanner("ascend","Ascend to " + round(apo/1000) + "km; heading " + hdglaunch + 
 
 // Starting/ending height of gravity turn
 // TODO adjust for atmospheric pressure; this works for Kerbin
-global launch_gt0 is body:atm:height * 0.007. // About 500m in Kerbin
-global launch_gt1 is body:atm:height * 0.6. // About 42000m in Kerbin
+local launch_gt0 is body:atm:height * 0.007. // About 500m in Kerbin
+local launch_gt1 is max(body:atm:height * 0.7, body:radius * 0.02). // About 42000m in Kerbin
 
 /////////////////////////////////////////////////////////////////////////////
 // Steering function for continuous lock.
@@ -96,6 +103,7 @@ sas off.
 bays off.
 // panels off. - bug in kOS with OX-STAT: KSP-KOS/KOS#2213
 partsRetractSolarPanels().
+partsRetractAntennas().
 radiators off.
 
 lock steering to ascentSteering().
