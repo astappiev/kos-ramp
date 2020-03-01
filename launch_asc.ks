@@ -114,7 +114,7 @@ lock throttle to ascentThrottle().
 /////////////////////////////////////////////////////////////////////////////
 
 local warped to false.
-until ship:obt:apoapsis >= apo {
+until ship:obt:apoapsis >= apo or (ship:altitude > apo/2 and eta:apoapsis < 30) {
 	stagingCheck().
 	ascentDeploy().
 	if not warped and altitude > min(ship:body:atm:height/10,1000) {
@@ -140,10 +140,11 @@ wait until utilIsShipFacing(heading(hdglaunch,0):vector).
 local AdjustmentThrottle is 0.
 lock throttle to AdjustmentThrottle.
 until ship:altitude > body:atm:height {
+  stagingCheck().
+  ascentDeploy().
   if ship:obt:apoapsis < apo {
-	set AdjustmentThrottle to ascentThrottle().
-	stagingCheck().
-	wait 0.
+		set AdjustmentThrottle to ascentThrottle().
+		wait 0.
   } else {
 	set AdjustmentThrottle to 0.
 	wait 0.5.
