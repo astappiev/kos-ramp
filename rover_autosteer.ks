@@ -14,9 +14,9 @@ runoncepath("lib_rover").
 
 local wtVAL is 0. //Wheel Throttle Value
 local kTurn is 0. //Wheel turn value.
-local targetspeed is 0. 
+local targetspeed is 0.
 local targetdistance is 0.
-local targetBearing is 0. 
+local targetBearing is 0.
 local runmode is 0.
 local RelSpeed is ship:groundspeed.
 local FollowingVessel is false.
@@ -33,7 +33,7 @@ local turnlimit is 0.
 ///////////////
 
 //Deal with targets
-if TargetToFollow:istype("vessel") { 
+if TargetToFollow:istype("vessel") {
     // Following another rover
     FollowingVessel on.
     lock CoordToFollow to TargetToFollow:geoposition.
@@ -68,21 +68,23 @@ if ship:status = "PRELAUNCH" {
     uiWarning("Rover","Rover is in Pre-Launch State. Launch it!").
     wait until ship:status <> "PRELAUNCH".
 }
-else if ship:status <> "LANDED" {  
+else if ship:status <> "LANDED" {
     uiError("Rover","Can't drive a rover that is " + ship:status).
     set runmode to -1.
 }
 
 local WThrottlePID is PIDLOOP(0.15,0.005,0.020, -1, 1). // Kp, Ki, Kd, MinOutput, MaxOutput
-set WThrottlePID:SETPOINT TO 0. 
+set WThrottlePID:SETPOINT TO 0.
 
 local SpeedPID is PIDLOOP(0.3,0.001,0.010,-speedlimit,speedlimit).
 set SpeedPID:SETPOINT to 0.
 
 local WSteeringkP is 0.010.
 local WSteeringPID is PIDLOOP(WSteeringkP,0.0001,0.002, -1, 1). // Kp, Ki, Kd, MinOutput, MaxOutput
-set WSteeringPID:SETPOINT TO 0. 
+set WSteeringPID:SETPOINT TO 0.
 
+local powersave is false.
+local lock ecPercent to partsPercentEC().
 
 until runmode = -1 {
 
@@ -93,9 +95,36 @@ until runmode = -1 {
 
     set N to TerrainNormalVector().
 
-    if runmode = 0 { //Govern the rover 
+    if not powersave and ecPercent < 8 {
+        set powersave to true.
+        uiBanner("Rover","Low battery, power down",2).
+    } else if powersave and ecPercent > 95 {
+        set powersave to false.
+        uiBanner("Rover","Battery charged, resuming",2).
+    }
+
+    // emergency shutdown
+    if ecPercent < 1 {
+      brakes on.
+    }
+
+    if RelSpeed < 0.1 {
+        partsExtendSolarPanels("stop").
+        partsExtendAntennas("stop").
+        lights off.
+    } else {
+        partsRetractSolarPanels("stop").
+        partsRetractAntennas("stop").
+        lights on.
+    }
+    if RelSpeed < 0.1 set runmode to -1.
+
+    if runmode = 0 { //Govern the rover
         //Wheel Throttle and brakes:
-        if FollowingVessel or Waypoints:EMPTY() {
+        if powersave {
+            set targetspeed to 0.
+            set brakes to RelSpeed < 2.
+        } else if FollowingVessel or Waypoints:EMPTY() {
             // If following a vessel or have just one waypoint, use the distance from they to compute speed and braking.
             set targetspeed to SpeedPID:UPDATE(time:seconds,DistanceToFollow-TargetDistance).
             if RelSpeed > 2 set brakes to TargetDistance/RelSpeed <= BreakTime.
@@ -108,14 +137,14 @@ until runmode = -1 {
             if RelSpeed > 2 set brakes to (TargetDistance+SpeedFactor)/RelSpeed <= BreakTime.
             else brakes off.
         }
-        if FollowingVessel {            
+        if FollowingVessel {
             set RelSpeed to vdot(ship:facing:vector:normalized,(ship:velocity:surface-TargetToFollow:velocity:surface)).
         }
         else{
             set RelSpeed to gs.
         }
         set wtVAL to WThrottlePID:UPDATE(time:seconds,RelSpeed-targetspeed).
-        
+
 
         //Steering:
         if gs < 0 set targetBearing to -targetBearing.
@@ -164,3 +193,4 @@ SET ship:control:translation to v(0,0,0).
 SET SHIP:CONTROL:NEUTRALIZE TO TRUE.
 SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 BRAKES ON.
+LIGHTS OFF.
