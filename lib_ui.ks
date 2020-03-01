@@ -75,7 +75,10 @@ function uiShowPorts {
 
   if myPort <> 0 {
     set ui_myPort:start to myPort:position.
-    set ui_myPort:vec to myPort:portfacing:vector*dist.
+    local facing is 0.
+    if myPort:typename = "DockingPort" set facing to myPort:portfacing.
+    else set facing to myPort:facing.
+    set ui_myPort:vec to facing:vector*dist.
     if ready {
       set ui_myPort:color to GREEN.
     } else {
@@ -88,7 +91,10 @@ function uiShowPorts {
 
   if hisPort <> 0 {
     set ui_hisPort:start to hisPort:position.
-    set ui_hisPort:vec to hisPort:portfacing:vector*dist.
+    local facing is 0.
+    if hisPort:typename = "DockingPort" set facing to hisPort:portfacing.
+    else set facing to hisPort:facing.
+    set ui_hisPort:vec to facing:vector*dist.
     set ui_hisPort:show to true.
   } else {
     set ui_hisPort:show to false.
@@ -177,14 +183,14 @@ FUNCTION uiAlarm {
     set vAlarm:volume to 0.5.
       vAlarm:PLAY(
           LIST(
-              NOTE("A#4", 0.2,  0.25), 
-              NOTE("A4",  0.2,  0.25), 
-              NOTE("A#4", 0.2,  0.25), 
+              NOTE("A#4", 0.2,  0.25),
+              NOTE("A4",  0.2,  0.25),
+              NOTE("A#4", 0.2,  0.25),
               NOTE("A4",  0.2,  0.25),
               NOTE("R",   0.2,  0.25),
-              NOTE("A#4", 0.2,  0.25), 
-              NOTE("A4",  0.2,  0.25), 
-              NOTE("A#4", 0.2,  0.25), 
+              NOTE("A#4", 0.2,  0.25),
+              NOTE("A4",  0.2,  0.25),
+              NOTE("A#4", 0.2,  0.25),
               NOTE("A4",  0.2,  0.25)
           )
       ).
@@ -200,7 +206,7 @@ FUNCTION uiBeep {
 FUNCTION uiChime {
   local vChimes to GetVoice(0).
   set vChimes:volume to 0.25.
-  set vChimes:wave to "SINE". 
+  set vChimes:wave to "SINE".
   vChimes:PLAY(
       LIST(
         NOTE("E5",0.8, 1),
@@ -212,7 +218,7 @@ FUNCTION uiChime {
 function uiTerminalMenu {
   // Shows a menu in the terminal window and waits for user input.
   // The parameter is a lexicon of a key to be pressed and a text to be show.
-  // ie.: 
+  // ie.:
   // LOCAL MyOptions IS LEXICON("Y","Yes","N","No").
   // LOCAL myVal is uiTerminalMenu(MyOptions).
   //
@@ -247,7 +253,7 @@ function uiTerminalMenu {
 
 function uiTerminalList {
   // Shows a menu in the terminal window and waits for user input.
-  
+
 	parameter Options.
 
 	local Choice is 0.
@@ -290,8 +296,8 @@ function uiTerminalList {
 	return Choice.
 }
 
-FUNCTION uiMSTOKMH { 
-    // Return m/s in km/h. 
+FUNCTION uiMSTOKMH {
+    // Return m/s in km/h.
     PARAMETER MS.
     RETURN MS * 3.6.
 }

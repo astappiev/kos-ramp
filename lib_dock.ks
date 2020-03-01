@@ -13,8 +13,7 @@ global dock_algnV is 2.5.  // max alignment speed (m/s)
 global dock_apchV is 1.    // max approach speed (m/s)
 global dock_dockV is 0.1.  // final approach speed (m/s)
 global dock_predV is 0.01. // pre dock speed (m/s)
-
-//global dock_Z is pidloop(1.4, 0, 0.4, -1, 1).
+global dock_AGU is false.  // docking a Grapple
 
 // Velocity controllers (during alignment)
 global dock_X1 is pidloop(1.4, 0, 0.4, -1, 1).
@@ -25,19 +24,36 @@ global dock_X2 is pidloop(0.4, 0, 1.2, -1, 1).
 global dock_Y2 is pidloop(0.4, 0, 1.2, -1, 1).
 
 // Shared velocity controller
-global dock_Z is pidloop(1.4, 0.2, 0.4, -1, 1).
+global dock_Z is pidloop(1.1, 0.2, 0.4, -1, 1).
 
 // Prepare to dock by orienting the ship and priming SAS/RCS
 function dockPrepare {
   parameter myPort, hisPort.
 
+  local myPortFacing is 0.
+  local hisPortFacing is 0.
+
+  if myPort:typename = "DockingPort" {
+    set myPortFacing to myPort:portfacing.
+  } else {
+    // AGU
+    set myPortFacing to myPort:facing.
+    set dock_AGU to true.
+  }
+
+  if hisPort:typename = "DockingPort" {
+    set hisPortFacing to hisPort:portfacing.
+  } else {
+    set hisPortFacing to hisPort:facing.
+  }
+
   // Control from myPort
   partsControlFromDockingPort(myPort).
 
   sas off.
-  lock steering to lookdirup(-hisPort:portfacing:forevector, hisPort:portfacing:upvector).
+  lock steering to lookdirup(-hisPortFacing:forevector, hisPortFacing:upvector).
   local t0 to time:seconds.
-  wait until vdot(myPort:portfacing:forevector, hisPort:portfacing:forevector) < -0.996 
+  wait until vdot(myPortFacing:forevector, hisPortFacing:forevector) < -0.996
              or (time:seconds - t0 > 15).
   rcs on.
 }
@@ -113,8 +129,9 @@ function dockApproach {
     local vWantZ is 0.
 
     if aprchPos:Z < dock_final {
-      if not dockPending(dockPort) {
+      if not dock_AGU and dockPending(dockPort) {
         // Final approach: barely inch forward!
+        // but don't be too gentle with an AGU...
         set vWantZ to -dock_dockV.
       }
       else {
@@ -149,32 +166,32 @@ function dockChoosePorts {
   local myPorts is list().
 
   // Docking port is already targeted
-  if target:istype("DockingPort") 
-     and target:state = "Ready" { 
+  if target:istype("DockingPort")
+     and target:state = "Ready" {
     hisPorts:add(target).
   }
   else if target:istype("Vessel") { // ship is targeted; list all free ports.
-    for port in target:dockingports { 
+    for port in target:dockingports {
       if port:state = "Ready" hisPorts:add(port).
     }
   }
 
-  // List all my ship ports not occupied. 
-  if SHIP:CONTROLPART:istype("DockingPort") and 
+  // List all my ship ports not occupied.
+  if SHIP:CONTROLPART:istype("DockingPort") and
   not SHIP:CONTROLPART:STATE:CONTAINS("docked") myPorts:add(SHIP:CONTROLPART).
-  else {  
+  else {
     for port in ship:dockingports {
       if not port:state:contains("docked") myPorts:add(port).
     }
   }
 
-  // Checks if both ships have ports. 
+  // Checks if both ships have ports.
   if myPorts:LENGTH = 0 OR hisPorts:LENGTH = 0 {
     return 0.
   }
 
   // Iterates through my ship ports and try to match with a port in target ship.
-  if hisPort = 0 { 
+  if hisPort = 0 {
     for myP in myPorts {
       if myPort = 0 {
         for hisP in hisPorts {
@@ -189,7 +206,7 @@ function dockChoosePorts {
   else{ // Target port was pre-selected. Just find a suitable port in my ship
     for myP in myPorts {
       if myPort = 0 and hisPort:NODETYPE = myP:NODETYPE {
-        set myPort to myP. 
+        set myPort to myP.
       }
     }
   }
@@ -205,20 +222,22 @@ function dockChoosePorts {
 function dockPending {
   parameter port.
 
-  if port:state = "Acquire" {
-    return true.
-  } else {
-    return false.
-  }
+  if port:typename = "DockingPort" return port:state = "Acquire".
+  return false.
 }
+
 // Determine whether chosen port is docked
 function dockComplete {
   parameter port.
 
-  if port:state:contains("Docked") {
-    return true.
+  if port:typename = "DockingPort" {
+    if port:state:contains("Docked") {
+      return true.
+    } else {
+      return false.
+    }
   } else {
-    return false.
+    return not hasTarget.
   }
 }
 
@@ -256,7 +275,7 @@ function dockMatchVelocity {
     // Stops the engines if reach near residual speed or if speed starts increasing. (May happens with some cases where the ship is not perfecly aligned with matchVel and residual is very low)
     until (matchVel:mag <= (residual + RCSTheresold)) or (matchVel:mag > v0) {
       set v0 to matchVel:mag.
-      wait 0.1. //Assure measurements are made some time apart. 
+      wait 0.1. //Assure measurements are made some time apart.
     }
 
     lock throttle to 0.
