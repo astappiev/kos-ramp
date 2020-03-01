@@ -7,6 +7,7 @@
 runoncepath("lib_util").
 runoncepath("lib_dock").
 runoncepath("lib_ui").
+runoncepath("lib_warp").
 
 //Those functions are for use by this program ONLY!
 function CancelVelT {
@@ -15,7 +16,7 @@ function CancelVelT {
     local lock steerDir to utilFaceBurn(lookdirup(-velT:normalized, ship:facing:upvector)).
     lock steering to steerDir.
     wait until utilIsShipFacing(steerDir:vector).
-    
+
     //Preditcs time to complete the burn with 50% plus error
     local tP is ( (velT:mag / accel)*1.5 ) + time:seconds.
 
@@ -23,7 +24,7 @@ function CancelVelT {
     wait until (velT:mag < 0.5) or (time:seconds > tP).
     lock throttle to 0.
   }
-  // Finish with RCS 
+  // Finish with RCS
   utilRCSCancelVelocity(velT@).
   unlock throttle.
   unlock steering.
@@ -43,7 +44,7 @@ function CancelVel {
     wait until (vel:mag < 0.5) or (time:seconds > tP).
     lock throttle to 0.
   }
-  // Finish with RCS 
+  // Finish with RCS
   utilRCSCancelVelocity(vel@).
   unlock throttle.
   unlock steering.
@@ -78,7 +79,7 @@ function GetCloser {
 }
 
 function BrakeForEncounter {
-  //Turn back to brake 
+  //Turn back to brake
   local lock steerDir to utilFaceBurn(lookdirup(-vel:normalized, ship:facing:upvector)).
   lock steering to steerDir.
   wait until utilIsShipFacing(steerDir:vector) .
@@ -87,7 +88,7 @@ function BrakeForEncounter {
   if dt > 0 {
     if dt > 60 {
       uiBanner("Maneuver", "Warping to brake").
-      runpath("warp",dt).
+      warpSeconds(dt).
     }
     else {
       uiBanner("Maneuver", "Waiting " + round(dt) + " seconds to brake").
@@ -131,20 +132,20 @@ until IsNearTarget {
   until GoingTowardsTarget() {
 
     // If ship is in nearby vicinty of target, or going away from it, cancel relative speed.
-    if target:position:mag / vel:mag < 30 or vang(target:position,vel) > 90 { 
+    if target:position:mag / vel:mag < 30 or vang(target:position,vel) > 90 {
       CancelVel().
-    } 
+    }
 
     // Cancel transverse velocity before attemps to get closer
-    if velT:mag > 1 { 
+    if velT:mag > 1 {
       CancelVelT().
     }
-    
+
     if not (GoingTowardsTarget and vel:mag > 5) {
     // Burn in direction to target at a sensible speed.
     GetCloser().
     }
-    wait 0. 
+    wait 0.
   }
 
   BrakeForEncounter().
